@@ -4,7 +4,7 @@ import { StaffLayout } from "@/components/StaffLayout";
 import { PriorityBadge, StatusBadge, ValidityBadge, DemoBadge } from "@/components/Badges";
 import { DataScopeFilter } from "@/components/DataScopeFilter";
 import { Spinner } from "@/components/Spinner";
-import { api } from "@/services/api";
+import { api, ApiError } from "@/services/api";
 import type { DataScope, Department, StaffIssueSummary } from "@/types";
 
 const STATUSES = ["SUBMITTED", "AI_VERIFIED", "MANUAL_REVIEW", "ASSIGNED", "ACCEPTED", "IN_PROGRESS", "AWAITING_CITIZEN_VERIFICATION", "RESOLVED", "REOPENED", "REJECTED", "TRANSFERRED"];
@@ -13,6 +13,7 @@ const SEVERITIES = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
 
 export default function StaffIssuesPage() {
   const [issues, setIssues] = useState<StaffIssueSummary[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [search, setSearch] = useState("");
@@ -28,7 +29,20 @@ export default function StaffIssuesPage() {
     // explicit status filter — including RESOLVED/REJECTED — that choice
     // wins, so the "All Statuses" dropdown still works exactly as before.
     const params = { ...filters, search: search || undefined, data_scope: dataScope, active_only: !filters.status };
-    api.staffIssues(params).then(setIssues).catch(() => setIssues([]));
+    setError(null);
+    api
+      .staffIssues(params)
+      .then((result) => {
+        setIssues(result);
+        setError(null);
+      })
+      .catch((e) => {
+        // A genuine failure must still clear the spinner, but showing an
+        // empty "no complaints match" table would be misleading — the
+        // request failed, it didn't legitimately return zero rows.
+        setIssues([]);
+        setError(e instanceof ApiError ? e.message : "Something went wrong. Please try again.");
+      });
   }, [filters, search, dataScope]);
 
   function setFilter(key: string, value: string) {
@@ -82,6 +96,8 @@ export default function StaffIssuesPage() {
 
       {!issues ? (
         <Spinner label="Loading issues…" />
+      ) : error ? (
+        <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
           <table className="w-full min-w-[900px] text-sm">

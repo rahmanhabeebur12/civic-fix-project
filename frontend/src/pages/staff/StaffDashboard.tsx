@@ -6,18 +6,27 @@ import { IssueMap } from "@/features/map/IssueMap";
 import { PriorityBadge, DemoBadge } from "@/components/Badges";
 import { DataScopeFilter } from "@/components/DataScopeFilter";
 import { Spinner } from "@/components/Spinner";
-import { api } from "@/services/api";
+import { api, ApiError } from "@/services/api";
 import type { DataScope, KPISummary, MapMarker, StaffIssueSummary } from "@/types";
 
 export default function StaffDashboard() {
   const [dataScope, setDataScope] = useState<DataScope>("live");
   const [summary, setSummary] = useState<KPISummary | null>(null);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
   const [markers, setMarkers] = useState<MapMarker[]>([]);
   const [priorityIssues, setPriorityIssues] = useState<StaffIssueSummary[]>([]);
 
   useEffect(() => {
     setSummary(null);
-    api.dashboardSummary(dataScope).then(setSummary).catch(() => {});
+    setSummaryError(null);
+    // A failed request must clear the loading state, not leave `summary`
+    // null forever (which would keep the spinner below spinning
+    // indefinitely) — see StaffIssuesPage.tsx / ReviewQueuePage.tsx for
+    // the same pattern.
+    api
+      .dashboardSummary(dataScope)
+      .then(setSummary)
+      .catch((e) => setSummaryError(e instanceof ApiError ? e.message : "Something went wrong. Please try again."));
     api.dashboardMap(dataScope).then(setMarkers).catch(() => {});
     api.staffIssues({ data_scope: dataScope, active_only: true }).then((issues) => setPriorityIssues(issues.slice(0, 8))).catch(() => {});
   }, [dataScope]);
@@ -33,7 +42,13 @@ export default function StaffDashboard() {
         <DataScopeFilter value={dataScope} onChange={setDataScope} />
       </div>
 
-      {!summary ? <Spinner label="Loading dashboard…" /> : <KPICards summary={summary} />}
+      {!summary && !summaryError ? (
+        <Spinner label="Loading dashboard…" />
+      ) : summaryError ? (
+        <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{summaryError}</p>
+      ) : (
+        <KPICards summary={summary!} />
+      )}
 
       <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-3">
         <div className="h-[420px] rounded-2xl border border-slate-200 bg-white p-2 shadow-sm lg:col-span-2">

@@ -44,7 +44,17 @@ def is_overdue(issue: Issue) -> bool:
     if issue.status in PAST_ISSUE_STATUSES:
         return False
     sla_hours = settings.SLA_HOURS.get(issue.severity, 72)
-    age_hours = (datetime.utcnow() - issue.created_at).total_seconds() / 3600
+    # Issue.created_at is DateTime(timezone=True). SQLite ignores that
+    # flag and always hands back a naive datetime, but PostgreSQL returns
+    # a real timezone-aware one -- subtracting it from naive
+    # datetime.utcnow() then raises "can't subtract offset-naive and
+    # offset-aware datetimes" on Postgres only. created_at is always a
+    # UTC instant in this app either way, so normalizing to naive UTC
+    # here is correct on both backends.
+    created_at = issue.created_at
+    if created_at.tzinfo is not None:
+        created_at = created_at.replace(tzinfo=None)
+    age_hours = (datetime.utcnow() - created_at).total_seconds() / 3600
     return age_hours > sla_hours
 
 

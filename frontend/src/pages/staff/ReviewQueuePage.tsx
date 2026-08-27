@@ -12,7 +12,20 @@ export default function ReviewQueuePage() {
   const [error, setError] = useState<string | null>(null);
 
   function load() {
-    api.staffIssues({ status: "MANUAL_REVIEW" }).then(setIssues).catch(() => setIssues([]));
+    setError(null);
+    api
+      .staffIssues({ status: "MANUAL_REVIEW" })
+      .then((result) => {
+        setIssues(result);
+        setError(null);
+      })
+      .catch((e) => {
+        // A genuine failure must still clear the spinner, but showing
+        // "No manual-review reports" would be misleading — the request
+        // failed, it didn't legitimately return zero rows.
+        setIssues([]);
+        setError(e instanceof ApiError ? e.message : "Something went wrong. Please try again.");
+      });
   }
 
   useEffect(load, []);
@@ -39,7 +52,7 @@ export default function ReviewQueuePage() {
 
       {!issues ? (
         <Spinner label="Loading…" />
-      ) : issues.length === 0 ? (
+      ) : issues.length === 0 && !error ? (
         <p className="rounded-xl border border-dashed border-slate-300 bg-white px-4 py-8 text-center text-sm text-slate-400">No manual-review reports.</p>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
