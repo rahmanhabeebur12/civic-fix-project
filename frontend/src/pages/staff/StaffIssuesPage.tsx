@@ -23,7 +23,11 @@ export default function StaffIssuesPage() {
   }, []);
 
   useEffect(() => {
-    const params = { ...filters, search: search || undefined, data_scope: dataScope };
+    // Main Issues view = active/operational issues only. RESOLVED (and
+    // REJECTED) belong on the Past Issues page instead. If staff pick an
+    // explicit status filter — including RESOLVED/REJECTED — that choice
+    // wins, so the "All Statuses" dropdown still works exactly as before.
+    const params = { ...filters, search: search || undefined, data_scope: dataScope, active_only: !filters.status };
     api.staffIssues(params).then(setIssues).catch(() => setIssues([]));
   }, [filters, search, dataScope]);
 

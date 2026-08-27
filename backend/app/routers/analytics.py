@@ -13,7 +13,7 @@ from app.services.analytics_service import compute_backlog_analytics, compute_re
 from app.services.heatmap_service import get_heatmap_points
 from app.services.hotspot_service import detect_hotspots
 from app.utils.deps import get_current_staff
-from app.routers.issues import apply_data_scope, is_overdue, RESOLVED_TERMINAL_STATUSES
+from app.routers.issues import apply_data_scope, is_overdue, PAST_ISSUE_STATUSES
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
 
@@ -26,7 +26,7 @@ def department_performance(db: Session = Depends(get_db), staff: StaffUser = Dep
         issues = db.query(Issue).filter(Issue.primary_department_id == dept.id).all()
         if not issues:
             continue
-        open_issues = [i for i in issues if i.status not in RESOLVED_TERMINAL_STATUSES]
+        open_issues = [i for i in issues if i.status not in PAST_ISSUE_STATUSES]
         critical = [i for i in open_issues if i.priority_level == "CRITICAL"]
         resolved = [i for i in issues if i.status == "RESOLVED"]
         backlog = [i for i in issues if i.status in ("SUBMITTED", "AI_VERIFIED", "MANUAL_REVIEW", "ASSIGNED")]

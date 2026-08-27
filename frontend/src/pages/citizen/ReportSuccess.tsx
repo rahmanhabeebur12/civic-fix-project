@@ -5,6 +5,7 @@ import { VOICE_GUIDANCE_EN } from "@/constants/voiceGuidance";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useVoiceGuidance } from "@/hooks/useVoiceGuidance";
 import { PriorityBadge, StatusBadge } from "@/components/Badges";
+import { getCitizenStatusLabel } from "@/constants/citizenStatus";
 import type { ReportSubmitResponse } from "@/types";
 
 export default function ReportSuccess() {
@@ -46,7 +47,7 @@ export default function ReportSuccess() {
           </div>
           <div className="flex items-center justify-between py-2">
             <span className="text-sm text-slate-500">{t.statusLabel}</span>
-            <StatusBadge status={result.status} />
+            <StatusBadge status={result.status} label={getCitizenStatusLabel(result.status)} />
           </div>
         </div>
 

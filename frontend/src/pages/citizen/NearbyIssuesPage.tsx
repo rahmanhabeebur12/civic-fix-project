@@ -7,6 +7,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { useAppStore } from "@/store/appStore";
 import { api, ApiError } from "@/services/api";
+import { LocationPickerMap } from "@/components/LocationPickerMap";
 import type { NearbyIssueItem } from "@/types";
 
 const RADIUS_OPTIONS = [1, 3, 5];
@@ -20,7 +21,8 @@ export default function NearbyIssuesPage() {
   const { t } = useTranslation();
   const citizen = useAppStore((s) => s.citizen);
   const setCitizen = useAppStore((s) => s.setCitizen);
-  const { location, status, capture } = useGeolocation();
+  const { location, status, capture, setManualLocation, lastKnownLocation, useLastKnownLocation, isPoorAccuracy } = useGeolocation();
+  const [showMapPicker, setShowMapPicker] = useState(false);
 
   const [radiusKm, setRadiusKm] = useState(3);
   const [issues, setIssues] = useState<NearbyIssueItem[] | null>(null);
@@ -76,6 +78,10 @@ export default function NearbyIssuesPage() {
       <h1 className="text-xl font-bold text-navy-800">{t.nearbyIssuesTitle}</h1>
       <p className="mb-4 text-sm text-slate-500">{t.nearbyIssuesHint}</p>
 
+      {status === "success" && isPoorAccuracy && (
+        <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-800">{t.locationPoorAccuracy}</p>
+      )}
+
       <div className="mb-4">
         <p className="mb-1 text-xs font-semibold uppercase text-slate-400">{t.nearbyRadius}</p>
         <div className="flex gap-2">
@@ -95,11 +101,24 @@ export default function NearbyIssuesPage() {
 
       {status === "idle" || status === "loading" ? (
         <Spinner label={t.nearbyLoading} />
-      ) : status === "denied" || status === "error" ? (
+      ) : (status === "denied" || status === "error") && !showMapPicker ? (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-center text-sm text-amber-800">
           <p className="mb-2">{t.nearbyLocationNeeded}</p>
-          <button className="btn-secondary" onClick={capture}>{t.nearbyEnableLocation}</button>
+          <div className="flex flex-wrap justify-center gap-2">
+            <button className="btn-secondary" onClick={capture}>{t.nearbyEnableLocation}</button>
+            <button className="btn-secondary" onClick={() => setShowMapPicker(true)}>{t.locationChooseOnMap}</button>
+            {lastKnownLocation && (
+              <button className="btn-secondary" onClick={useLastKnownLocation}>{t.useLastKnownLocation}</button>
+            )}
+          </div>
         </div>
+      ) : showMapPicker ? (
+        <LocationPickerMap
+          onConfirm={(lat, lng) => {
+            setManualLocation(lat, lng);
+            setShowMapPicker(false);
+          }}
+        />
       ) : !issues ? (
         <Spinner label={t.nearbyLoading} />
       ) : error ? (

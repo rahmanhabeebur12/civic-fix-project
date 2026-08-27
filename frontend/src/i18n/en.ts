@@ -28,9 +28,15 @@ const en = {
   skipPhoto: "Skip — I'll describe it instead",
 
   locationStepTitle: "Where is the problem?",
-  capturingLocation: "Capturing location…",
-  locationCaptured: "Location captured",
-  locationDenied: "We couldn't get your location automatically. Please enter it manually.",
+  capturingLocation: "Getting your location...",
+  locationCaptured: "Location found",
+  locationDenied: "Location permission is turned off.",
+  locationUnableToGet: "We couldn't get your location.",
+  locationPoorAccuracy: "Location accuracy is low. You can retry or choose the location on the map.",
+  locationChooseOnMap: "Choose on Map",
+  tapMapToChoose: "Tap the map to choose your location.",
+  useThisLocation: "Use This Location",
+  useLastKnownLocation: "Use My Last Location",
   enterLocationManually: "Enter location manually",
   latitude: "Latitude",
   longitude: "Longitude",
@@ -79,6 +85,9 @@ const en = {
   noReportsYet: "No complaints yet.",
   trackByComplaintId: "Enter your Complaint ID",
   track: "Track",
+
+  trackingOfflineNotice: "You're offline — showing the last known status.",
+  lastUpdatedLabel: "Last updated",
 
   timelineSubmitted: "Report Submitted",
   timelineAiVerified: "AI Verified",

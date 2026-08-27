@@ -38,7 +38,9 @@ export default function AnalyticsPage() {
   }, [heatmapDays, heatmapCategory]);
 
   const maxCategoryCount = Math.max(1, ...(categories || []).map((c) => c.count));
-  const heatmapCenter: [number, number] = heatmapPoints?.length ? [heatmapPoints[0].latitude, heatmapPoints[0].longitude] : [13.0827, 80.2707];
+  // Initial view only — HeatmapLayer pans to the actual data once loaded,
+  // since the map now stays mounted across filter changes (see below).
+  const heatmapCenter: [number, number] = [13.0827, 80.2707];
 
   return (
     <StaffLayout>
@@ -204,17 +206,22 @@ export default function AnalyticsPage() {
             </select>
           </div>
         </div>
-        <div className="h-[380px] overflow-hidden rounded-xl border border-slate-200">
-          {!heatmapPoints ? (
-            <Spinner label="Loading heatmap…" />
-          ) : (
-            <MapContainer center={heatmapCenter} zoom={12} className="h-full w-full">
-              <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
-              <HeatmapLayer points={heatmapPoints} />
-            </MapContainer>
+        <div className="relative h-[380px] overflow-hidden rounded-xl border border-slate-200">
+          {/* The map itself stays mounted across filter changes — only the
+              heat layer's data updates — so switching days/category
+              refreshes the layer instead of tearing down and rebuilding
+              the whole Leaflet map each time. */}
+          <MapContainer center={heatmapCenter} zoom={12} className="h-full w-full">
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+            <HeatmapLayer points={heatmapPoints || []} />
+          </MapContainer>
+          {!heatmapPoints && (
+            <div className="absolute inset-0 z-[1000] flex items-center justify-center bg-white/70">
+              <Spinner label="Loading heatmap…" />
+            </div>
           )}
         </div>
         {heatmapPoints && heatmapPoints.length === 0 && (

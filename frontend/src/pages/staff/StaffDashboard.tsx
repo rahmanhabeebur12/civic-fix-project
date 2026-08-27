@@ -19,7 +19,7 @@ export default function StaffDashboard() {
     setSummary(null);
     api.dashboardSummary(dataScope).then(setSummary).catch(() => {});
     api.dashboardMap(dataScope).then(setMarkers).catch(() => {});
-    api.staffIssues({ data_scope: dataScope }).then((issues) => setPriorityIssues(issues.slice(0, 8))).catch(() => {});
+    api.staffIssues({ data_scope: dataScope, active_only: true }).then((issues) => setPriorityIssues(issues.slice(0, 8))).catch(() => {});
   }, [dataScope]);
 
   const center: [number, number] = markers.length

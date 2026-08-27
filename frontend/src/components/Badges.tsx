@@ -54,8 +54,12 @@ export function SeverityBadge({ level }: { level: string }) {
   return <Badge label={level} className={SEVERITY_STYLES[level] || "bg-slate-100 text-slate-700"} />;
 }
 
-export function StatusBadge({ status }: { status: string }) {
-  return <Badge label={status} className={STATUS_STYLES[status] || "bg-slate-100 text-slate-700"} />;
+export function StatusBadge({ status, label }: { status: string; label?: string }) {
+  // `label` lets callers (citizen-facing pages) show a friendlier string
+  // while reusing the exact same color-per-status mapping — see
+  // constants/citizenStatus.ts. Omitted everywhere else (staff views),
+  // which keeps showing the raw status exactly as before.
+  return <Badge label={label ?? status} className={STATUS_STYLES[status] || "bg-slate-100 text-slate-700"} />;
 }
 
 export function ValidityBadge({ status }: { status: string }) {

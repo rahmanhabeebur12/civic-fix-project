@@ -3,14 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { api, ApiError } from "@/services/api";
 import { useAppStore } from "@/store/appStore";
 
-const DEMO_ACCOUNTS = [
-  { username: "admin", password: "admin123", label: "Admin" },
-  { username: "roads", password: "roads123", label: "Roads Officer" },
-  { username: "sanitation", password: "sanitation123", label: "Sanitation Officer" },
-  { username: "electrical", password: "electrical123", label: "Electrical Officer" },
-  { username: "drainage", password: "drainage123", label: "Drainage Officer" },
-];
-
 export default function StaffLogin() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -55,24 +47,6 @@ export default function StaffLogin() {
             {loading ? "Logging in…" : "Log In"}
           </button>
         </form>
-
-        <div className="mt-6 rounded-xl bg-slate-50 p-3 text-xs text-slate-500">
-          <p className="mb-1 font-semibold text-slate-600">Demo credentials</p>
-          {DEMO_ACCOUNTS.map((acc) => (
-            <button
-              key={acc.username}
-              type="button"
-              className="mt-1 flex w-full items-center justify-between rounded-lg px-2 py-1 text-left hover:bg-slate-100"
-              onClick={() => {
-                setUsername(acc.username);
-                setPassword(acc.password);
-              }}
-            >
-              <span>{acc.label}</span>
-              <span className="font-mono">{acc.username} / {acc.password}</span>
-            </button>
-          ))}
-        </div>
       </div>
     </div>
   );

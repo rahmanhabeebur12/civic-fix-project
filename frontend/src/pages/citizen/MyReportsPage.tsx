@@ -1,13 +1,15 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { CitizenLayout } from "@/components/CitizenLayout";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useRevalidateOnFocus } from "@/hooks/useRevalidateOnFocus";
 import { useAppStore } from "@/store/appStore";
 import { api } from "@/services/api";
 import { imageUrl } from "@/services/api";
 import { getPendingReports } from "@/services/offlineReportService";
 import { PriorityBadge, StatusBadge } from "@/components/Badges";
 import { Spinner } from "@/components/Spinner";
+import { getCitizenStatusLabel } from "@/constants/citizenStatus";
 import type { MyReportSummary } from "@/types";
 
 export default function MyReportsPage() {
@@ -17,15 +19,32 @@ export default function MyReportsPage() {
   const [reports, setReports] = useState<MyReportSummary[] | null>(null);
   const [pendingCount, setPendingCount] = useState(0);
   const [trackInput, setTrackInput] = useState("");
+  const hasLoadedOnceRef = useRef(false);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     getPendingReports().then((r) => setPendingCount(r.length));
     if (citizen?.mobile) {
-      api.myReports(citizen.mobile).then(setReports).catch(() => setReports([]));
+      api
+        .myReports(citizen.mobile)
+        .then((result) => {
+          setReports(result);
+          hasLoadedOnceRef.current = true;
+        })
+        .catch(() => {
+          // Same principle as Track Report: the backend is the source of
+          // truth, but if a refresh fails (e.g. offline) after we've
+          // already shown real data once, keep showing it rather than
+          // blanking to an empty list.
+          if (!hasLoadedOnceRef.current) setReports([]);
+        });
     } else {
       setReports([]);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [citizen]);
+
+  useEffect(load, [load]);
+  useRevalidateOnFocus(load);
 
   return (
     <CitizenLayout showBack>
@@ -70,7 +89,7 @@ export default function MyReportsPage() {
               <p className="text-sm font-semibold text-slate-800">{r.issue_type}</p>
               <p className="text-xs text-slate-400">{r.complaint_id}</p>
               <div className="mt-1 flex gap-2">
-                <StatusBadge status={r.status} />
+                <StatusBadge status={r.status} label={getCitizenStatusLabel(r.status)} />
                 <PriorityBadge level={r.priority_level} />
               </div>
             </div>

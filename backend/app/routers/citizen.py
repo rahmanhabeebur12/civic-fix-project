@@ -9,16 +9,13 @@ from app.models.user import User
 from app.schemas.issue import (
     AddSupportRequest, IssueTrackingResponse, NearbyIssueItem, ReportSubmitResponse, ResolutionInfo, StatusHistoryItem,
 )
+from app.routers.issues import PAST_ISSUE_STATUSES
 from app.services.location_service import haversine_meters
 from app.services.rate_limiter import hash_client_ip
 from app.services.report_pipeline import add_support_report, process_citizen_report
 from app.utils.file_storage import resolve_url
 
 router = APIRouter(prefix="/citizen", tags=["citizen"])
-
-# "Unresolved/live" for the nearby-issues feature — mirrors
-# app.routers.issues.RESOLVED_TERMINAL_STATUSES.
-_UNRESOLVED_STATUSES_EXCLUDE = ("RESOLVED", "REJECTED")
 
 # Client-facing radius choices (kilometers) — default 3km.
 _ALLOWED_RADIUS_KM = (1.0, 3.0, 5.0)
@@ -121,7 +118,7 @@ def nearby_issues(latitude: float, longitude: float, radius_km: float = _DEFAULT
     candidates = (
         db.query(Issue)
         .filter(Issue.is_demo.is_(False))
-        .filter(~Issue.status.in_(_UNRESOLVED_STATUSES_EXCLUDE))
+        .filter(~Issue.status.in_(PAST_ISSUE_STATUSES))
         .filter(Issue.latitude.between(latitude - lat_delta, latitude + lat_delta))
         .filter(Issue.longitude.between(longitude - lon_delta, longitude + lon_delta))
         .all()

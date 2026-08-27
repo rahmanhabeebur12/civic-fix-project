@@ -8,11 +8,10 @@ from app.models.issue import Issue
 from app.models.staff import StaffUser
 from app.schemas.dashboard import KPISummary, MapMarker
 from app.utils.deps import get_current_staff
-from app.routers.issues import is_overdue, apply_data_scope
+from app.routers.issues import is_overdue, apply_data_scope, PAST_ISSUE_STATUSES
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
-OPEN_STATUSES = ("SUBMITTED", "AI_VERIFIED", "MANUAL_REVIEW", "ASSIGNED", "ACCEPTED", "IN_PROGRESS", "AWAITING_CITIZEN_VERIFICATION", "REOPENED", "TRANSFERRED")
 BACKLOG_STATUSES = ("SUBMITTED", "AI_VERIFIED", "MANUAL_REVIEW", "ASSIGNED")
 
 
@@ -20,7 +19,7 @@ BACKLOG_STATUSES = ("SUBMITTED", "AI_VERIFIED", "MANUAL_REVIEW", "ASSIGNED")
 def summary(data_scope: str = "live", db: Session = Depends(get_db), staff: StaffUser = Depends(get_current_staff)):
     issues = apply_data_scope(db.query(Issue), data_scope).all()
 
-    open_issues = [i for i in issues if i.status in OPEN_STATUSES]
+    open_issues = [i for i in issues if i.status not in PAST_ISSUE_STATUSES]
     critical = [i for i in open_issues if i.priority_level == "CRITICAL"]
     in_progress = [i for i in issues if i.status == "IN_PROGRESS"]
     resolved_today = [i for i in issues if i.status == "RESOLVED" and i.resolved_at and i.resolved_at.date() == date.today()]
@@ -48,7 +47,12 @@ def summary(data_scope: str = "live", db: Session = Depends(get_db), staff: Staf
 
 @router.get("/map", response_model=list[MapMarker])
 def map_markers(data_scope: str = "live", db: Session = Depends(get_db), staff: StaffUser = Depends(get_current_staff)):
-    query = apply_data_scope(db.query(Issue).filter(Issue.status != "REJECTED"), data_scope)
+    # The main dashboard map is an ACTIVE view — RESOLVED issues must
+    # disappear from it immediately (they remain fully in the database;
+    # see /staff/issues?status=RESOLVED / the Past Issues page for them).
+    # A REOPENED issue has a different status again, so it naturally
+    # reappears here with no special-case code needed.
+    query = apply_data_scope(db.query(Issue).filter(Issue.status.notin_(PAST_ISSUE_STATUSES)), data_scope)
     issues = query.all()
     return [
         MapMarker(

@@ -30,9 +30,15 @@ const ta: TranslationDict = {
   skipPhoto: "தவிர்க்கவும் — நான் விவரிக்கிறேன்",
 
   locationStepTitle: "பிரச்சனை எங்கே உள்ளது?",
-  capturingLocation: "இடத்தைக் கண்டறிகிறது…",
+  capturingLocation: "உங்கள் இடத்தைக் கண்டறிகிறது…",
   locationCaptured: "இடம் கண்டறியப்பட்டது",
-  locationDenied: "உங்கள் இடத்தை தானாகப் பெற முடியவில்லை. கைமுறையாக உள்ளிடவும்.",
+  locationDenied: "இட அனுமதி முடக்கப்பட்டுள்ளது.",
+  locationUnableToGet: "உங்கள் இடத்தைப் பெற முடியவில்லை.",
+  locationPoorAccuracy: "இட துல்லியம் குறைவாக உள்ளது. மீண்டும் முயற்சிக்கலாம் அல்லது வரைபடத்தில் இடத்தைத் தேர்ந்தெடுக்கலாம்.",
+  locationChooseOnMap: "வரைபடத்தில் தேர்ந்தெடுக்கவும்",
+  tapMapToChoose: "உங்கள் இடத்தைத் தேர்ந்தெடுக்க வரைபடத்தில் தட்டவும்.",
+  useThisLocation: "இந்த இடத்தைப் பயன்படுத்தவும்",
+  useLastKnownLocation: "எனது கடைசி இடத்தைப் பயன்படுத்தவும்",
   enterLocationManually: "இடத்தை கைமுறையாக உள்ளிடவும்",
   latitude: "அட்சரேகை",
   longitude: "தீர்க்கரேகை",
@@ -81,6 +87,9 @@ const ta: TranslationDict = {
   noReportsYet: "இதுவரை புகார்கள் இல்லை.",
   trackByComplaintId: "உங்கள் புகார் எண்ணை உள்ளிடவும்",
   track: "கண்காணிக்கவும்",
+
+  trackingOfflineNotice: "நீங்கள் ஆஃப்லைனில் உள்ளீர்கள் — கடைசியாக அறியப்பட்ட நிலையைக் காட்டுகிறது.",
+  lastUpdatedLabel: "கடைசியாக புதுப்பிக்கப்பட்டது",
 
   timelineSubmitted: "புகார் சமர்ப்பிக்கப்பட்டது",
   timelineAiVerified: "AI சரிபார்த்தது",

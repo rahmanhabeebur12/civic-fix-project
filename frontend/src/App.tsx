@@ -19,6 +19,7 @@ import StaffDashboard from "@/pages/staff/StaffDashboard";
 import StaffIssuesPage from "@/pages/staff/StaffIssuesPage";
 import StaffIssueDetailPage from "@/pages/staff/StaffIssueDetailPage";
 import ReviewQueuePage from "@/pages/staff/ReviewQueuePage";
+import PastIssuesPage from "@/pages/staff/PastIssuesPage";
 import AnalyticsPage from "@/pages/staff/AnalyticsPage";
 import { RequireStaffAuth } from "@/components/RequireStaffAuth";
 
@@ -51,6 +52,7 @@ export default function App() {
       <Route path="/staff/issues" element={<RequireStaffAuth><StaffIssuesPage /></RequireStaffAuth>} />
       <Route path="/staff/issues/:id" element={<RequireStaffAuth><StaffIssueDetailPage /></RequireStaffAuth>} />
       <Route path="/staff/review-queue" element={<RequireStaffAuth><ReviewQueuePage /></RequireStaffAuth>} />
+      <Route path="/staff/past-issues" element={<RequireStaffAuth><PastIssuesPage /></RequireStaffAuth>} />
       <Route path="/staff/analytics" element={<RequireStaffAuth><AnalyticsPage /></RequireStaffAuth>} />
 
       <Route path="*" element={<Navigate to="/" replace />} />

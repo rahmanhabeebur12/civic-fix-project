@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useGeolocation, type LocationResult } from "@/hooks/useGeolocation";
+import { LocationPickerMap } from "@/components/LocationPickerMap";
 
 export function LocationStep({
   location,
@@ -14,11 +15,11 @@ export function LocationStep({
   onBack: () => void;
 }) {
   const { t } = useTranslation();
-  const { location: captured, status, capture, setManualLocation } = useGeolocation();
-  const [manualMode, setManualMode] = useState(false);
-  const [manualLat, setManualLat] = useState("");
-  const [manualLng, setManualLng] = useState("");
+  const { location: captured, status, capture, setManualLocation, lastKnownLocation, useLastKnownLocation, isPoorAccuracy } = useGeolocation();
+  const [showMapPicker, setShowMapPicker] = useState(false);
 
+  // Reuse a location already captured earlier in this report session
+  // instead of triggering GPS again unnecessarily.
   useEffect(() => {
     if (!location) capture();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -51,41 +52,43 @@ export function LocationStep({
         </div>
       )}
 
-      {(status === "denied" || status === "error") && !manualMode && (
+      {status === "success" && isPoorAccuracy && !showMapPicker && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          <p>{t.locationDenied}</p>
+          <p>{t.locationPoorAccuracy}</p>
           <div className="mt-2 flex gap-2">
-            <button className="btn-secondary" onClick={capture}>
-              {t.retryLocation}
-            </button>
-            <button className="btn-secondary" onClick={() => setManualMode(true)}>
-              {t.enterLocationManually}
-            </button>
+            <button className="btn-secondary" onClick={capture}>{t.retryLocation}</button>
+            <button className="btn-secondary" onClick={() => setShowMapPicker(true)}>{t.locationChooseOnMap}</button>
           </div>
         </div>
       )}
 
-      {manualMode && (
-        <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">{t.latitude}</label>
-            <input className="input-field" value={manualLat} onChange={(e) => setManualLat(e.target.value)} inputMode="decimal" />
+      {(status === "denied" || status === "error") && !showMapPicker && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <p>{status === "denied" ? t.locationDenied : t.locationUnableToGet}</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button className="btn-secondary" onClick={capture}>
+              {t.retryLocation}
+            </button>
+            <button className="btn-secondary" onClick={() => setShowMapPicker(true)}>
+              {t.locationChooseOnMap}
+            </button>
+            {lastKnownLocation && (
+              <button className="btn-secondary" onClick={useLastKnownLocation}>
+                {t.useLastKnownLocation}
+              </button>
+            )}
           </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">{t.longitude}</label>
-            <input className="input-field" value={manualLng} onChange={(e) => setManualLng(e.target.value)} inputMode="decimal" />
-          </div>
-          <button
-            className="btn-secondary"
-            onClick={() => {
-              const lat = parseFloat(manualLat);
-              const lng = parseFloat(manualLng);
-              if (!isNaN(lat) && !isNaN(lng)) setManualLocation(lat, lng);
-            }}
-          >
-            {t.locationCaptured}
-          </button>
         </div>
+      )}
+
+      {showMapPicker && (
+        <LocationPickerMap
+          initialCenter={effectiveLocation ? [effectiveLocation.latitude, effectiveLocation.longitude] : undefined}
+          onConfirm={(lat, lng) => {
+            setManualLocation(lat, lng);
+            setShowMapPicker(false);
+          }}
+        />
       )}
 
       <div className="mt-4 flex gap-3">

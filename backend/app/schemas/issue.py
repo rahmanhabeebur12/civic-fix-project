@@ -84,6 +84,7 @@ class StaffIssueSummary(BaseModel):
     is_demo: bool
     created_at: datetime
     updated_at: datetime
+    resolved_at: datetime | None = None
     review_reasons: list[str] = []
 
 

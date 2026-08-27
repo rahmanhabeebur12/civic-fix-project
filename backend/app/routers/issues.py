@@ -26,7 +26,14 @@ from app.utils.file_storage import resolve_url
 public_router = APIRouter(prefix="/issues", tags=["issues"])
 staff_router = APIRouter(prefix="/staff/issues", tags=["staff-issues"])
 
-RESOLVED_TERMINAL_STATUSES = ("RESOLVED", "REJECTED")
+# The single source of truth for "operationally done" vs. "active" issue
+# statuses — reused by the dashboard, analytics, and the staff Issues /
+# Past Issues pages so they can never drift out of sync with each other.
+PAST_ISSUE_STATUSES = ("RESOLVED", "REJECTED")
+# ACTIVE_ISSUE_STATUSES is simply everything else (SUBMITTED, MANUAL_REVIEW,
+# ASSIGNED, ACCEPTED, IN_PROGRESS, AWAITING_CITIZEN_VERIFICATION, REOPENED) —
+# expressed as Issue.status.notin_(PAST_ISSUE_STATUSES) rather than a
+# second literal list, so the two sets can't fall out of sync.
 
 
 def _log_status(db: Session, issue: Issue, status: str, changed_by: str, note: str):
@@ -34,7 +41,7 @@ def _log_status(db: Session, issue: Issue, status: str, changed_by: str, note: s
 
 
 def is_overdue(issue: Issue) -> bool:
-    if issue.status in RESOLVED_TERMINAL_STATUSES:
+    if issue.status in PAST_ISSUE_STATUSES:
         return False
     sla_hours = settings.SLA_HOURS.get(issue.severity, 72)
     age_hours = (datetime.utcnow() - issue.created_at).total_seconds() / 3600
@@ -174,6 +181,7 @@ def _to_summary(issue: Issue) -> StaffIssueSummary:
         is_demo=issue.is_demo,
         created_at=issue.created_at,
         updated_at=issue.updated_at,
+        resolved_at=issue.resolved_at,
         review_reasons=compute_review_reasons(issue, first_report),
     )
 
@@ -204,11 +212,18 @@ def list_issues(
     min_reporters: int | None = None,
     search: str | None = None,
     data_scope: str | None = None,
+    active_only: bool = False,
     db: Session = Depends(get_db),
     staff: StaffUser = Depends(get_current_staff),
 ):
     query = db.query(Issue)
     query = apply_data_scope(query, data_scope)
+    if active_only:
+        # RESOLVED/REJECTED issues are operationally done — the main
+        # dashboard/active views should never show them. They remain in
+        # the same database and are still reachable via status=RESOLVED
+        # (Past Issues) or status=REJECTED filters; nothing is deleted.
+        query = query.filter(Issue.status.notin_(PAST_ISSUE_STATUSES))
     if department_id:
         query = query.filter(Issue.primary_department_id == department_id)
     if category:
