@@ -10,3 +10,4 @@ python-dotenv==1.0.1
 Pillow==11.1.0
 httpx==0.28.1  # Groq API calls (issue_understanding_service) + FastAPI TestClient in tests
 psycopg[binary]==3.2.3  # PostgreSQL driver for production (DATABASE_URL=postgresql+psycopg://...); SQLite needs no driver
+psycopg2-binary==2.9.9  # PostgreSQL driver for Render's default postgresql:// DATABASE_URL (SQLAlchemy's default dialect for that prefix requires psycopg2, not psycopg3)
