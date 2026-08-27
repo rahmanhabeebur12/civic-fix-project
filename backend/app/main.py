@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
-from app.database import Base, engine
+from app.database import Base, SessionLocal, engine
 from app.routers import (
     accessibility, analytics, auth, citizen, dashboard, departments, health, issues, notifications,
 )
@@ -16,6 +16,31 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("civicfix")
 
 Base.metadata.create_all(bind=engine)
+
+
+def _ensure_default_staff_accounts() -> None:
+    """A brand-new database (e.g. a fresh Render PostgreSQL instance) has
+    tables but no rows -- create_all() above only creates the schema.
+    Without this, staff/admin login doesn't fail because of a wrong
+    password; the account simply never existed. seed_departments() and
+    seed_staff() are the same functions the local `python -m app.seed`
+    workflow already uses -- both idempotent (skip anything that already
+    exists) and both hash passwords via app.services.auth_service, so
+    this is safe to run on every startup and never creates duplicates or
+    stores a plaintext password. Deliberately excludes seed_pois/
+    seed_issues (the demo dataset) -- this only guarantees the login
+    accounts exist, not a full demo dataset on every deploy."""
+    from app.seed import seed_departments, seed_staff
+
+    db = SessionLocal()
+    try:
+        seed_departments(db)
+        seed_staff(db)
+    finally:
+        db.close()
+
+
+_ensure_default_staff_accounts()
 log_antivirus_status()
 
 app = FastAPI(title="CivicFix API", version="1.0.0")
