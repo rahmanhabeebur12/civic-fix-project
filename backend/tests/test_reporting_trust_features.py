@@ -304,8 +304,19 @@ class ReviewReasonsTests(unittest.TestCase):
 
         from app.routers.issues import compute_review_reasons
         reasons = compute_review_reasons(issue, first_report)
-        self.assertIn("TEXT_ONLY", reasons)
-        self.assertNotIn("PHOTO_ONLY", reasons, "a reason that did not occur must never be shown")
+        # A brand-new citizen's cold-start reliability/duplicate-evidence
+        # factors (see validation_adapter.py) genuinely pull a first-ever
+        # report below VALID even with a solid description -- that's the
+        # real reason this landed in review, so it's the one that must
+        # show up here.
+        self.assertIn("Validation requires review", reasons)
+        # Reasons that did not occur must never be shown: no photo was
+        # ever provided, the description matched a known category, and
+        # there were no other candidate issues to possibly duplicate.
+        self.assertNotIn("Insufficient visual evidence", reasons)
+        self.assertNotIn("Photo and description conflict", reasons)
+        self.assertNotIn("Category uncertain", reasons)
+        self.assertNotIn("Possible duplicate", reasons)
 
 
 if __name__ == "__main__":

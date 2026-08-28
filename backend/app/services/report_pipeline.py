@@ -45,12 +45,11 @@ from app.services.image_sanitizer import (
 )
 from app.services.notification_service import notify
 from app.services.rate_limiter import check_rate_limit
+from app.services.review_routing import evaluate_manual_review
 from app.services.spam_detector import detect_supplemental_flags, hash_image_bytes
 from app.services.taxonomy import to_validator_category
 from app.services.validation_adapter import calculate_validity_adaptive, determine_submission_mode
 from app.utils.id_generator import generate_complaint_id
-
-MANUAL_REVIEW_STATUSES = ("REVIEW", "SUSPICIOUS")
 
 
 def _get_or_create_user(db: Session, name: str, mobile: str) -> User:
@@ -336,7 +335,24 @@ def _run_pipeline(
 
     action = duplicate_recommendation["action"]
     report.is_duplicate = action == "LINK_TO_EXISTING"
-    is_manual_review = validity_result.status in MANUAL_REVIEW_STATUSES
+
+    # ------------------------------------------------------------------
+    # REVIEW ROUTING — a report reaches the normal active workflow only
+    # when the system has enough confidence to proceed. This looks at
+    # the canonical engines' own outputs (validity status, duplicate
+    # action) plus the AI understanding layer's confidence/category —
+    # never re-implementing or re-weighting validator.py/duplicate.py
+    # themselves. See app.services.review_routing for the full rule set.
+    # ------------------------------------------------------------------
+    is_manual_review, review_reasons = evaluate_manual_review(
+        validity_status=validity_result.status,
+        ai_confidence=classification.confidence,
+        category=classification.category,
+        duplicate_action=action,
+        has_photo=bool(relative_image_path),
+        description=description,
+        validator_category=validator_category,
+    )
 
     # ------------------------------------------------------------------
     # CREATE_NEW / REVIEW / LINK_TO_EXISTING
@@ -422,7 +438,7 @@ def _run_pipeline(
         else:
             _log_status(
                 db, issue, "MANUAL_REVIEW", "system",
-                f"Flagged for manual review (validity {validity_result.status}, score {validity_result.validity_score}).",
+                f"Flagged for manual review: {', '.join(review_reasons)}.",
             )
 
     # ------------------------------------------------------------------

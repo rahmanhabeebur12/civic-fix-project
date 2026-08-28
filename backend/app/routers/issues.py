@@ -20,6 +20,8 @@ from app.services.core import priority as core_priority
 from app.services.image_sanitizer import ImageSanitizationError, read_upload_enforcing_limit, sanitize_image_bytes
 from app.services.notification_service import notify
 from app.services.reliability_service import compute_reliability
+from app.services.review_routing import evaluate_manual_review
+from app.services.taxonomy import to_validator_category
 from app.utils.deps import get_current_staff
 from app.utils.file_storage import resolve_url
 
@@ -58,45 +60,36 @@ def is_overdue(issue: Issue) -> bool:
     return age_hours > sla_hours
 
 
-LOW_AI_CONFIDENCE_THRESHOLD = 0.5
-FALLBACK_CONFIDENCE = 0.3  # see issue_understanding_service._build_result_fallback
-
-
 def compute_review_reasons(issue: Issue, first_report) -> list[str]:
-    """Explains WHY an issue is (or was) in the manual review queue, using
-    only signals that actually occurred — derived from fields already
-    stored on Issue/IssueReport. Never guesses; a reason is included only
-    when the underlying condition genuinely holds for this issue."""
-    reasons: list[str] = []
+    """Explains WHY an issue is (or was) flagged for manual review, using
+    the exact same rule set report_pipeline.py used to make that routing
+    decision at submission time (see app.services.review_routing) — so
+    what staff see here can never drift from what actually happened.
+    Reconstructed from fields already stored on Issue/IssueReport; a
+    reason is included only when the underlying condition genuinely
+    holds for this issue.
+
+    Adds one extra, purely informational signal not part of the routing
+    decision itself: a prior spam/frequency flag on the founding report.
+    """
+    description = first_report.normalized_description if first_report else ""
+    _, reasons = evaluate_manual_review(
+        validity_status=issue.validity_status,
+        ai_confidence=issue.ai_confidence,
+        category=issue.category,
+        duplicate_action=issue.duplicate_action,
+        has_photo=bool(issue.image_path),
+        description=description,
+        validator_category=to_validator_category(issue.issue_type),
+    )
 
     if first_report:
-        if first_report.submission_mode == "PHOTO_ONLY":
-            reasons.append("PHOTO_ONLY")
-        elif first_report.submission_mode == "TEXT_ONLY":
-            reasons.append("TEXT_ONLY")
-        if first_report.accessibility_adjustment:
-            reasons.append("ACCESSIBILITY_ADJUSTMENT")
         try:
             flags = json.loads(first_report.supplemental_flags or "[]")
         except json.JSONDecodeError:
             flags = []
         if any("frequency" in f.lower() for f in flags):
-            reasons.append("SUSPICIOUS_FREQUENCY")
-
-    if issue.duplicate_action == "REVIEW":
-        reasons.append("POSSIBLE_DUPLICATE")
-
-    if issue.category == "Other":
-        reasons.append("UNKNOWN_CATEGORY")
-
-    has_photo = bool(issue.image_path)
-    if issue.ai_confidence <= FALLBACK_CONFIDENCE and has_photo:
-        # A photo was provided but classification still landed in the
-        # lowest-confidence fallback — the image-understanding step did
-        # not produce a usable result for it.
-        reasons.append("IMAGE_CLASSIFICATION_UNAVAILABLE")
-    elif issue.ai_confidence < LOW_AI_CONFIDENCE_THRESHOLD:
-        reasons.append("LOW_AI_CONFIDENCE")
+            reasons.append("Possible spam pattern")
 
     return reasons
 
